@@ -1,0 +1,6 @@
+{
+  "name": "GreenData Pipelines Dashboard",
+  "description": "Dashboard transparente para monitoreo de pipelines de datos con optimización de huella de carbono y análisis regional.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
