@@ -194,19 +194,27 @@ async function startServer() {
         const geoCache = fs.existsSync(GEO_PATH) ? JSON.parse(fs.readFileSync(GEO_PATH, "utf-8")) : {};
 
         records.forEach((row: any) => {
-          // Robust column extraction
-          const date = row.date || row.Date || "";
-          const modelName = (row.model || row.Model || "unknown").toLowerCase();
+          // Robust column extraction with case-insensitivity and common variations
+          const keys = Object.keys(row);
+          const findVal = (variants: string[]) => {
+            const key = keys.find(k => variants.some(v => k.toLowerCase().trim() === v.toLowerCase()));
+            return key ? row[key] : null;
+          };
+
+          const date = findVal(["date", "fecha", "timestamp", "ts"]) || "";
+          const modelName = String(findVal(["model", "modelo"]) || "unknown").toLowerCase();
           
-          // Function to parse numbers handling commas
+          // Function to parse numbers handling commas and non-numeric junk
           const robustParse = (val: any) => {
             if (typeof val === "number") return val;
             if (!val) return 0;
-            return parseFloat(String(val).replace(",", "."));
+            const cleaned = String(val).replace(/[^\d.,-]/g, "").replace(",", ".");
+            const parsed = parseFloat(cleaned);
+            return isNaN(parsed) ? 0 : parsed;
           };
 
-          const co2 = robustParse(row.co2_g || row.CO2 || row.co2 || 0);
-          const saved = robustParse(row.saved_co2_g || row.saved_co2 || row.Savings || 0);
+          const co2 = robustParse(findVal(["co2_g", "co2", "huella", "carbon_footprint"]));
+          const saved = robustParse(findVal(["saved_co2_g", "saved_co2", "savings", "ahorro", "ahorro_co2"]));
           
           if (!date) return;
 

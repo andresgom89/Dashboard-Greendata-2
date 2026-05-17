@@ -643,9 +643,9 @@ export default function App() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                 <MetricCard label="Llamadas Consolidadas (30d)" value={history?.total_calls?.toLocaleString() || "0"} sub="Total auditado" colorClass="text-indigo-400" />
-                <MetricCard label="Carga de Carbono (G)" value={`${history?.total_co2_g?.toFixed(2) || "0.00"} g`} sub={`Audit trial 30-day index`} colorClass="text-rose-400" />
-                <MetricCard label="Impacto de Ahorro" value={`${history?.total_co2_saved_g?.toFixed(2) || "0.00"} g`} sub={`${((history?.total_co2_saved_g || 0) / (history?.total_co2_g || 0.01) * 100).toFixed(1)}% mitigado`} colorClass="text-emerald-400" />
-                <MetricCard label="Consumo Energético" value={`${history?.total_wh?.toFixed(2) || "0.00"} Wh`} sub="Grid Load Average" colorClass="text-amber-400" />
+                <MetricCard label="Carga de Carbono (G)" value={`${history?.total_co2_g?.toFixed(3) || "0.000"} g`} sub={`Audit trial 30-day index`} colorClass="text-rose-400" />
+                <MetricCard label="Impacto de Ahorro" value={`${history?.total_co2_saved_g?.toFixed(3) || "0.000"} g`} sub={`${((history?.total_co2_saved_g || 0) / (history?.total_co2_g || 0.001) * 100).toFixed(1)}% mitigado`} colorClass="text-emerald-400" />
+                <MetricCard label="Consumo Energético" value={`${history?.total_wh?.toFixed(3) || "0.000"} Wh`} sub="Grid Load Average" colorClass="text-amber-400" />
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
