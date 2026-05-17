@@ -203,7 +203,9 @@ async function startServer() {
           };
 
           const date = findVal(["date", "fecha", "timestamp", "ts"]) || "";
+          const hourVal = robustParse(findVal(["hour", "hora"]));
           const modelName = String(findVal(["model", "modelo"]) || "unknown").toLowerCase();
+          const format = String(findVal(["format", "formato"]) || "unknown").toLowerCase();
           
           // Function to parse numbers handling commas, scientific notation and non-numeric junk
           const robustParse = (val: any) => {
@@ -232,6 +234,8 @@ async function startServer() {
           by_country[country].calls++;
           by_country[country].co2_g += co2;
 
+          by_serialization[format] = (by_serialization[format] || 0) + 1;
+
           total_calls++;
           total_co2_g += co2;
           total_co2_saved_g += saved;
@@ -243,8 +247,8 @@ async function startServer() {
             total_wh += (co2 / intensity) * 1000;
           }
 
-          const hour = Math.floor(Math.random() * 24);
-          by_hour[hour] += co2; 
+          const h = Math.floor(hourVal) % 24;
+          by_hour[h] += co2; 
         });
 
         return res.json({
@@ -258,6 +262,7 @@ async function startServer() {
           by_hour,
           by_model,
           by_country,
+          serialization_stats: by_serialization,
           source: "Local CSV Audit"
         });
       }

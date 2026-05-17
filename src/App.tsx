@@ -79,6 +79,7 @@ interface HistoricalData {
   by_hour: number[];
   by_model: Record<string, { calls: number; co2_g: number }>;
   by_country: Record<string, { calls: number; co2_g: number }>;
+  serialization_stats: Record<string, number>;
 }
 
 // --- Constants ---
@@ -227,15 +228,18 @@ export default function App() {
 
   const historyDayData = useMemo(() => {
     if (!history) return [];
-    return Object.entries(history.by_day).map(([date, co2]: [string, number]) => ({ 
-      date: date.slice(5), 
-      co2: Number(co2.toFixed(2)) 
-    }));
+    // Sort dates properly
+    return Object.entries(history.by_day)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([date, co2]: [string, number]) => ({ 
+        date: date.slice(5), 
+        co2: Number(co2.toFixed(6)) 
+      }));
   }, [history]);
 
   const historyHourData = useMemo(() => {
     if (!history) return [];
-    return history.by_hour.map((val: number, h: number) => ({ hour: `${h}h`, co2: Number(val.toFixed(2)) }));
+    return history.by_hour.map((val: number, h: number) => ({ hour: `${h}h`, co2: Number(val.toFixed(6)) }));
   }, [history]);
 
   return (
@@ -721,6 +725,7 @@ export default function App() {
                           contentStyle={{ backgroundColor: "#161b22", border: "1px solid #30363d", borderRadius: "12px" }}
                           itemStyle={{ color: "#10b981" }}
                           cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }}
+                          formatter={(value: number) => [`${value.toFixed(6)} g`, "Huella"]}
                         />
                         <Bar dataKey="co2" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={24} />
                       </BarChart>
@@ -741,6 +746,7 @@ export default function App() {
                         <Tooltip 
                            contentStyle={{ backgroundColor: "#161b22", border: "1px solid #30363d", borderRadius: "12px" }} 
                            itemStyle={{ color: "#6366f1" }}
+                           formatter={(value: number) => [`${value.toFixed(6)} g`, "Carga"]}
                         />
                         <Line type="stepAfter" dataKey="co2" stroke="#6366f1" strokeWidth={3} dot={false} strokeDasharray="None" animationDuration={2000} />
                       </LineChart>
