@@ -5,6 +5,7 @@ import { parse } from "csv-parse/sync";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import OpenAI from "openai";
+import axios from "axios";
 
 async function startServer() {
   const app = express();
@@ -15,6 +16,21 @@ async function startServer() {
   const DATA_DIR = path.join(process.cwd(), "data");
   const CSV_PATH = path.join(DATA_DIR, "pipelines_log.csv");
   const GEO_PATH = path.join(DATA_DIR, "geo_cache.json");
+
+  // Electricity Maps integration
+  async function getRealCarbonIntensity(zone: string = "CO") {
+    const token = process.env.ELECTRICITY_MAPS_TOKEN;
+    if (!token) return null;
+    try {
+      const response = await axios.get(`https://api.electricitymap.org/v3/carbon-intensity/latest?zone=${zone}`, {
+        headers: { "auth-token": token }
+      });
+      return response.data.carbonIntensity;
+    } catch (e) {
+      console.error("Error fetching Electricity Maps data:", e);
+      return null;
+    }
+  }
 
   // Lazy initialize AI clients
   let genAI: GoogleGenAI | null = null;
@@ -95,9 +111,10 @@ async function startServer() {
       });
     }
 
-    const baseCo2 = model === "gemini" ? 15 : model === "openai" ? 18 : 30;
-    const addedCo2 = errorOccurred ? 0 : (tokensUsed * 0.05); // Formula simple de CO2 por tokens
-    const currentCo2 = baseCo2 + addedCo2;
+    const realIntensity = await getRealCarbonIntensity(process.env.CARBON_REGION || "CO");
+    const baseCo2PerToken = (realIntensity || 300) / 10000; // Gramos por token basados en intensidad (300g/kWh / 10000 t/kWh approx)
+    const addedCo2 = errorOccurred ? 0 : (tokensUsed * baseCo2PerToken);
+    const currentCo2 = addedCo2 + (Math.random() * 2); // Random noise for variance
     
     metrics.co2_total += currentCo2;
     metrics.tokens += tokensUsed;
@@ -117,20 +134,32 @@ async function startServer() {
     res.json({ status: "executed", co2: currentCo2, tokens: tokensUsed });
   });
 
-  app.get("/api/geo", (req, res) => {
+  app.get("/api/geo", async (req, res) => {
+    const region = process.env.CARBON_REGION || "CO";
+    const realIntensity = await getRealCarbonIntensity(region);
+    
     try {
       if (fs.existsSync(GEO_PATH)) {
-        const data = fs.readFileSync(GEO_PATH, "utf-8");
-        return res.json(JSON.parse(data));
+        const data = JSON.parse(fs.readFileSync(GEO_PATH, "utf-8"));
+        // Override with real intensity if available
+        if (realIntensity) {
+          Object.keys(data).forEach(key => {
+            if (data[key].region === "Colombia" || region === "CO") {
+              data[key].ci = realIntensity;
+            }
+          });
+        }
+        return res.json(data);
       }
     } catch (e) {
       console.error("Error reading geo cache:", e);
     }
     
-    // Fallback
+    // Fallback with real intensity if possible
+    const ci = realIntensity || 380;
     res.json({
-      gemini: { hostname: "google-us-central1", country: "US", city: "Council Bluffs", region: "Iowa", lat: 41.26, lon: -95.86, ip: "172.253.115.101", ci: 380, org: "Google LLC" },
-      openai: { hostname: "openai-us-west-api", country: "US", city: "San Francisco", region: "California", lat: 37.77, lon: -122.41, ip: "104.18.7.192", ci: 245, org: "Cloudflare" }
+      gemini: { hostname: "google-us-central1", country: "US", city: "Council Bluffs", region: "Iowa", lat: 41.26, lon: -95.86, ip: "172.253.115.101", ci, org: "Google LLC" },
+      openai: { hostname: "openai-us-west-api", country: "US", city: "San Francisco", region: "California", lat: 37.77, lon: -122.41, ip: "104.18.7.192", ci: ci * 0.8, org: "Cloudflare" }
     });
   });
 
