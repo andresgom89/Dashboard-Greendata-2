@@ -189,39 +189,38 @@ async function startServer() {
         let total_wh = 0;
         const by_hour = Array.from({ length: 24 }, () => 0);
 
+        const robustParse = (val: any) => {
+          if (typeof val === "number") return val;
+          if (!val) return 0;
+          const cleaned = String(val).replace(/[^\d.,eE-]/g, "").replace(",", ".");
+          const parsed = parseFloat(cleaned);
+          return isNaN(parsed) ? 0 : parsed;
+        };
+
         const realIntensity = await getRealCarbonIntensity(process.env.CARBON_REGION || "CO");
-        const intensity = realIntensity || 300; // g CO2 / kWh
+        const intensity = realIntensity || 300; 
 
         const geoCache = fs.existsSync(GEO_PATH) ? JSON.parse(fs.readFileSync(GEO_PATH, "utf-8")) : {};
 
         records.forEach((row: any) => {
-          // Robust column extraction with case-insensitivity and common variations
           const keys = Object.keys(row);
           const findVal = (variants: string[]) => {
             const key = keys.find(k => variants.some(v => k.toLowerCase().trim() === v.toLowerCase()));
             return key ? row[key] : null;
           };
 
-          const date = findVal(["date", "fecha", "timestamp", "ts"]) || "";
+          let date = findVal(["date", "fecha", "timestamp", "ts"]) || "";
+          if (date.length > 10) date = date.substring(0, 10);
+          
           const hourVal = robustParse(findVal(["hour", "hora"]));
           const modelName = String(findVal(["model", "modelo"]) || "unknown").toLowerCase();
           const format = String(findVal(["format", "formato"]) || "unknown").toLowerCase();
           
-          // Function to parse numbers handling commas, scientific notation and non-numeric junk
-          const robustParse = (val: any) => {
-            if (typeof val === "number") return val;
-            if (!val) return 0;
-            // Allow digits, dots, commas, minus signs and "e" for scientific notation
-            const cleaned = String(val).replace(/[^\d.,eE-]/g, "").replace(",", ".");
-            const parsed = parseFloat(cleaned);
-            return isNaN(parsed) ? 0 : parsed;
-          };
-
           const co2 = robustParse(findVal(["co2_g", "co2", "huella", "carbon_footprint"]));
           const saved = robustParse(findVal(["co2_saved_g", "saved_co2_g", "saved_co2", "savings", "ahorro", "ahorro_co2"]));
           const energy = robustParse(findVal(["energy_kwh", "energia_kwh", "consumption"]));
           
-          if (!date) return;
+          if (!date || date.length < 5) return;
 
           by_day[date] = (by_day[date] || 0) + co2;
           
@@ -270,7 +269,7 @@ async function startServer() {
       console.error("Error reading CSV:", e);
     }
 
-    // Fallback Mock (Same as before)
+    // Fallback Mock (Extended for UI)
     const now = new Date();
     const startDate = new Date();
     startDate.setDate(now.getDate() - 30);
@@ -281,15 +280,26 @@ async function startServer() {
         const key = d.toISOString().split("T")[0];
         by_day[key] = Math.random() * 200 + 50;
     }
-    res.json({
+    return res.json({
       period_start: startDate.toISOString().split("T")[0],
       period_end: now.toISOString().split("T")[0],
       total_calls: 1420,
       total_co2_g: 4850.32,
       total_co2_saved_g: 1940.12,
+      total_wh: 12.45,
       by_day,
       by_hour: Array.from({ length: 24 }, () => Math.random() * 50 + 10),
-      source: "Mock (File not found)"
+      by_model: {
+        "openai": { calls: 620, co2_g: 2100.45 },
+        "gemini": { calls: 800, co2_g: 2749.87 }
+      },
+      serialization_stats: {
+        "protobuf": 450,
+        "avro": 380,
+        "json": 320,
+        "xml": 270
+      },
+      source: "Mock (File read issue)"
     });
   });
 
