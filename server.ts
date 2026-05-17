@@ -182,6 +182,7 @@ async function startServer() {
         const by_day: Record<string, number> = {};
         const by_model: Record<string, { calls: number; co2_g: number }> = {};
         const by_country: Record<string, { calls: number; co2_g: number }> = {};
+        const by_serialization: Record<string, number> = {};
         let total_calls = 0;
         let total_co2_g = 0;
         let total_co2_saved_g = 0;
@@ -204,17 +205,19 @@ async function startServer() {
           const date = findVal(["date", "fecha", "timestamp", "ts"]) || "";
           const modelName = String(findVal(["model", "modelo"]) || "unknown").toLowerCase();
           
-          // Function to parse numbers handling commas and non-numeric junk
+          // Function to parse numbers handling commas, scientific notation and non-numeric junk
           const robustParse = (val: any) => {
             if (typeof val === "number") return val;
             if (!val) return 0;
-            const cleaned = String(val).replace(/[^\d.,-]/g, "").replace(",", ".");
+            // Allow digits, dots, commas, minus signs and "e" for scientific notation
+            const cleaned = String(val).replace(/[^\d.,eE-]/g, "").replace(",", ".");
             const parsed = parseFloat(cleaned);
             return isNaN(parsed) ? 0 : parsed;
           };
 
           const co2 = robustParse(findVal(["co2_g", "co2", "huella", "carbon_footprint"]));
-          const saved = robustParse(findVal(["saved_co2_g", "saved_co2", "savings", "ahorro", "ahorro_co2"]));
+          const saved = robustParse(findVal(["co2_saved_g", "saved_co2_g", "saved_co2", "savings", "ahorro", "ahorro_co2"]));
+          const energy = robustParse(findVal(["energy_kwh", "energia_kwh", "consumption"]));
           
           if (!date) return;
 
@@ -233,8 +236,12 @@ async function startServer() {
           total_co2_g += co2;
           total_co2_saved_g += saved;
           
-          // Formula: (CO2_g / intensity_g_per_kWh) * 1000 = Wh
-          total_wh += (co2 / intensity) * 1000;
+          // Use energy from CSV if available, otherwise derive it from CO2
+          if (energy > 0) {
+            total_wh += energy * 1000;
+          } else {
+            total_wh += (co2 / intensity) * 1000;
+          }
 
           const hour = Math.floor(Math.random() * 24);
           by_hour[hour] += co2; 

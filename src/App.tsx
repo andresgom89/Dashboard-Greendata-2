@@ -643,9 +643,67 @@ export default function App() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                 <MetricCard label="Llamadas Consolidadas (30d)" value={history?.total_calls?.toLocaleString() || "0"} sub="Total auditado" colorClass="text-indigo-400" />
-                <MetricCard label="Carga de Carbono (G)" value={`${history?.total_co2_g?.toFixed(3) || "0.000"} g`} sub={`Audit trial 30-day index`} colorClass="text-rose-400" />
-                <MetricCard label="Impacto de Ahorro" value={`${history?.total_co2_saved_g?.toFixed(3) || "0.000"} g`} sub={`${((history?.total_co2_saved_g || 0) / (history?.total_co2_g || 0.001) * 100).toFixed(1)}% mitigado`} colorClass="text-emerald-400" />
-                <MetricCard label="Consumo Energético" value={`${history?.total_wh?.toFixed(3) || "0.000"} Wh`} sub="Grid Load Average" colorClass="text-amber-400" />
+                <MetricCard label="Carga de Carbono (G)" value={`${history?.total_co2_g?.toFixed(4) || "0.0000"} g`} sub={`Audit trial 30-day index`} colorClass="text-rose-400" />
+                <MetricCard label="Impacto de Ahorro" value={`${history?.total_co2_saved_g?.toFixed(4) || "0.0000"} g`} sub={`${((history?.total_co2_saved_g || 0) / (history?.total_co2_g || 0.0001) * 100).toFixed(2)}% mitigado`} colorClass="text-emerald-400" />
+                <MetricCard label="Consumo Energético" value={`${history?.total_wh?.toFixed(4) || "0.0000"} Wh`} sub="Grid Load Average" colorClass="text-amber-400" />
+              </div>
+
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                {/* Serialization Distribution Table */}
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 backdrop-blur-sm">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-1 h-6 bg-cyan-500 rounded-full" />
+                      <h3 className="font-bold text-slate-100 uppercase tracking-wider text-sm">Análisis de Serialización</h3>
+                    </div>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead className="text-slate-400 border-b border-slate-800">
+                        <tr>
+                          <th className="pb-3 font-medium">Formato / Protocolo</th>
+                          <th className="pb-3 font-medium text-right">Llamadas</th>
+                          <th className="pb-3 font-medium text-right">Distribución %</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-slate-300 divide-y divide-slate-800/50">
+                        {history && history.serialization_stats && Object.entries(history.serialization_stats).sort((a,b) => (b[1] as number) - (a[1] as number)).map(([format, count]) => (
+                          <tr key={format} className="hover:bg-slate-800/30 transition-colors">
+                            <td className="py-4 font-mono text-cyan-400 uppercase">{format}</td>
+                            <td className="py-4 text-right font-medium">{(count as number).toLocaleString()}</td>
+                            <td className="py-4 text-right">
+                              <span className="bg-cyan-500/10 text-cyan-400 px-2 py-1 rounded text-xs">
+                                {(((count as number) / history.total_calls) * 100).toFixed(1)}%
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </motion.div>
+
+                {/* Model and Country Analysis Grid */}
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 backdrop-blur-sm">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-1 h-6 bg-indigo-500 rounded-full" />
+                    <h3 className="font-bold text-slate-100 uppercase tracking-wider text-sm">Resumen de Modelos Auditados</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {history && history.by_model && Object.entries(history.by_model).map(([model, data]) => (
+                      <div key={model} className="bg-slate-800/40 p-4 rounded-lg border border-slate-700/50">
+                        <div className="text-[10px] text-slate-400 uppercase mb-1 font-bold">{model}</div>
+                        <div className="flex justify-between items-baseline mb-2">
+                          <span className="text-xl font-bold text-white">{data.calls}</span>
+                          <span className="text-xs text-rose-400 font-mono">{data.co2_g.toFixed(4)}g</span>
+                        </div>
+                        <div className="w-full bg-slate-700/50 h-1.5 rounded-full overflow-hidden">
+                          <div className="bg-indigo-500 h-full rounded-full transition-all duration-1000" style={{ width: `${(data.calls / history.total_calls) * 100}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
