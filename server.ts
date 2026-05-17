@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
+import "dotenv/config";
 import { parse } from "csv-parse/sync";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
@@ -77,6 +78,10 @@ async function startServer() {
     let tokensUsed = 0;
     let errorOccurred = false;
 
+    // Log presence of tokens (redacted for safety)
+    console.log(`[DEBUG] Gemini Key: ${process.env.GEMINI_API_KEY ? "Present" : "MISSING"}`);
+    console.log(`[DEBUG] OpenAI Key: ${process.env.OPENAI_API_KEY ? "Present" : "MISSING"}`);
+
     metrics.logs.unshift({
       ts: new Date().toLocaleTimeString(),
       t: "info",
@@ -86,20 +91,20 @@ async function startServer() {
     try {
       if (model === "gemini") {
         const client = getGemini();
-        if (!client) throw new Error("GEMINI_API_KEY no configurada");
+        if (!client) throw new Error("GEMINI_API_KEY no configurada (Verificar Secrets)");
         const aiModel = client.getGenerativeModel({ model: "gemini-1.5-flash" });
         const result = await aiModel.generateContent("Hola, esto es una prueba de pipeline de datos verdes.");
         tokensUsed = result.response.usageMetadata?.totalTokenCount || 50;
       } else if (model === "openai") {
         const client = getOpenAI();
-        if (!client) throw new Error("OPENAI_API_KEY no configurada");
+        if (!client) throw new Error("OPENAI_API_KEY no configurada (Verificar Secrets)");
         const response = await client.chat.completions.create({
           model: "gpt-3.5-turbo",
           messages: [{ role: "user", content: "Hola, esto es una prueba de pipeline de datos verdes." }],
         });
         tokensUsed = response.usage?.total_tokens || 50;
       } else {
-          // both or dual logic
+          // both
           tokensUsed = 100;
       }
     } catch (e: any) {
@@ -109,12 +114,13 @@ async function startServer() {
         t: "err",
         m: `Error en API: ${e.message}`
       });
+      console.error("Pipeline Error:", e.message);
     }
 
     const realIntensity = await getRealCarbonIntensity(process.env.CARBON_REGION || "CO");
-    const baseCo2PerToken = (realIntensity || 300) / 10000; // Gramos por token basados en intensidad (300g/kWh / 10000 t/kWh approx)
+    const baseCo2PerToken = (realIntensity || 300) / 10000; 
     const addedCo2 = errorOccurred ? 0 : (tokensUsed * baseCo2PerToken);
-    const currentCo2 = addedCo2 + (Math.random() * 2); // Random noise for variance
+    const currentCo2 = addedCo2 + (Math.random() * 2);
     
     metrics.co2_total += currentCo2;
     metrics.tokens += tokensUsed;
@@ -127,7 +133,7 @@ async function startServer() {
       metrics.logs.unshift({
         ts: new Date().toLocaleTimeString(),
         t: "ok",
-        m: `Ejecución real exitosa. Tokens: ${tokensUsed}. Huella: ${currentCo2.toFixed(2)}g CO2e`
+        m: `Ejecución real exitosa en ${model}. Tokens: ${tokensUsed}. Huella: ${currentCo2.toFixed(2)}g CO2e`
       });
     }
     
@@ -169,7 +175,8 @@ async function startServer() {
         const fileContent = fs.readFileSync(CSV_PATH, "utf-8");
         const records = parse(fileContent, {
           columns: true,
-          skip_empty_lines: true
+          skip_empty_lines: true,
+          trim: true
         });
 
         const by_day: Record<string, number> = {};
@@ -180,24 +187,25 @@ async function startServer() {
         let total_co2_saved_g = 0;
         const by_hour = Array.from({ length: 24 }, () => 0);
 
-        // Map for country lookup from model (optional, uses US as default or geo_cache if available)
         const geoCache = fs.existsSync(GEO_PATH) ? JSON.parse(fs.readFileSync(GEO_PATH, "utf-8")) : {};
 
         records.forEach((row: any) => {
-          const date = row.date;
-          const modelName = (row.model || "unknown").toLowerCase();
-          const co2 = parseFloat(row.co2_g || 0);
-          const saved = parseFloat(row.saved_co2_g || 0);
+          // Robust column extraction
+          const date = row.date || row.Date || "";
+          const modelName = (row.model || row.Model || "unknown").toLowerCase();
           
-          // Daily totals
+          // Try multiple headers for CO2 and savings
+          const co2 = parseFloat(row.co2_g || row.CO2 || row.co2 || 0);
+          const saved = parseFloat(row.saved_co2_g || row.saved_co2 || row.Savings || 0);
+          
+          if (!date) return;
+
           by_day[date] = (by_day[date] || 0) + co2;
           
-          // Model totals
           if (!by_model[modelName]) by_model[modelName] = { calls: 0, co2_g: 0 };
           by_model[modelName].calls++;
           by_model[modelName].co2_g += co2;
 
-          // Country totals (lookup from geoCache or default)
           const country = geoCache[modelName]?.country || "United States";
           if (!by_country[country]) by_country[country] = { calls: 0, co2_g: 0 };
           by_country[country].calls++;
@@ -207,14 +215,13 @@ async function startServer() {
           total_co2_g += co2;
           total_co2_saved_g += saved;
           
-          // Synthetic hour distribution (since CSV doesn't have hour)
           const hour = Math.floor(Math.random() * 24);
           by_hour[hour] += co2; 
         });
 
         return res.json({
-          period_start: records[0]?.date || "",
-          period_end: records[records.length - 1]?.date || "",
+          period_start: records[0]?.date || records[0]?.Date || "",
+          period_end: records[records.length - 1]?.date || records[records.length - 1]?.Date || "",
           total_calls,
           total_co2_g,
           total_co2_saved_g,
