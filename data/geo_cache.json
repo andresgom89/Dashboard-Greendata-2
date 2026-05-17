@@ -1,0 +1,24 @@
+{
+  "gemini": {
+    "hostname": "google-us-central1",
+    "country": "US",
+    "city": "Council Bluffs",
+    "region": "Iowa",
+    "lat": 41.26,
+    "lon": -95.86,
+    "ip": "172.253.115.101",
+    "ci": 310,
+    "org": "Google LLC"
+  },
+  "openai": {
+    "hostname": "openai-us-west-api",
+    "country": "US",
+    "city": "San Francisco",
+    "region": "California",
+    "lat": 37.77,
+    "lon": -122.41,
+    "ip": "104.18.7.192",
+    "ci": 190,
+    "org": "Cloudflare"
+  }
+}
