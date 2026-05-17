@@ -169,7 +169,7 @@ async function startServer() {
     });
   });
 
-  app.get("/api/monthly", (req, res) => {
+  app.get("/api/monthly", async (req, res) => {
     try {
       if (fs.existsSync(CSV_PATH)) {
         const fileContent = fs.readFileSync(CSV_PATH, "utf-8");
@@ -185,7 +185,11 @@ async function startServer() {
         let total_calls = 0;
         let total_co2_g = 0;
         let total_co2_saved_g = 0;
+        let total_wh = 0;
         const by_hour = Array.from({ length: 24 }, () => 0);
+
+        const realIntensity = await getRealCarbonIntensity(process.env.CARBON_REGION || "CO");
+        const intensity = realIntensity || 300; // g CO2 / kWh
 
         const geoCache = fs.existsSync(GEO_PATH) ? JSON.parse(fs.readFileSync(GEO_PATH, "utf-8")) : {};
 
@@ -194,9 +198,15 @@ async function startServer() {
           const date = row.date || row.Date || "";
           const modelName = (row.model || row.Model || "unknown").toLowerCase();
           
-          // Try multiple headers for CO2 and savings
-          const co2 = parseFloat(row.co2_g || row.CO2 || row.co2 || 0);
-          const saved = parseFloat(row.saved_co2_g || row.saved_co2 || row.Savings || 0);
+          // Function to parse numbers handling commas
+          const robustParse = (val: any) => {
+            if (typeof val === "number") return val;
+            if (!val) return 0;
+            return parseFloat(String(val).replace(",", "."));
+          };
+
+          const co2 = robustParse(row.co2_g || row.CO2 || row.co2 || 0);
+          const saved = robustParse(row.saved_co2_g || row.saved_co2 || row.Savings || 0);
           
           if (!date) return;
 
@@ -215,6 +225,9 @@ async function startServer() {
           total_co2_g += co2;
           total_co2_saved_g += saved;
           
+          // Formula: (CO2_g / intensity_g_per_kWh) * 1000 = Wh
+          total_wh += (co2 / intensity) * 1000;
+
           const hour = Math.floor(Math.random() * 24);
           by_hour[hour] += co2; 
         });
@@ -225,6 +238,7 @@ async function startServer() {
           total_calls,
           total_co2_g,
           total_co2_saved_g,
+          total_wh,
           by_day,
           by_hour,
           by_model,
