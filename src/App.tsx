@@ -156,7 +156,7 @@ const MetricCard = ({ label, value, sub, colorClass, highlight }: any) => (
 );
 
 export default function App() {
-  const [tab, setTab] = useState<"live" | "geo" | "matrix" | "history" | "reports">("live");
+  const [tab, setTab] = useState<"live" | "geo" | "matrix" | "history">("live");
   const [model, setModel] = useState<"gemini" | "openai" | "both">("gemini");
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [geo, setGeo] = useState<Record<string, GeoData> | null>(null);
@@ -256,7 +256,7 @@ export default function App() {
             <span className="font-bold text-ink-primary tracking-tight text-sm">GREEN DATA PIPELINES <span className="text-gray-500 text-[10px] ml-1 font-mono tracking-widest opacity-50">V5.0</span></span>
           </div>
           <nav className="hidden md:flex gap-6 mt-1">
-            {["live", "history", "geo", "matrix", "reports"].map((t) => (
+            {["live", "history", "geo", "matrix"].map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t as any)}
@@ -300,86 +300,6 @@ export default function App() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
           >
-            {tab === "reports" && (
-              <div className="space-y-8">
-                <div className="card-elegant p-8 border-indigo-500/30">
-                  <div className="flex items-center justify-between mb-8">
-                    <div>
-                      <h2 className="text-2xl font-black uppercase tracking-tight mb-2">Informes de Sustentación Professional</h2>
-                      <p className="text-ink-secondary text-xs font-medium">Documentación técnica y guías de grado para Ingeniería de Sistemas.</p>
-                    </div>
-                    <button 
-                      onClick={() => window.print()}
-                      className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-lg"
-                    >
-                      <Download className="w-4 h-4" /> Exportar a PDF
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div className="p-8 bg-bg-secondary rounded-2xl border border-border-subtle shadow-sm transition-all hover:border-indigo-500/30 group">
-                        <div className="flex items-center gap-4 mb-6">
-                          <div className="p-3 bg-indigo-500/10 rounded-xl group-hover:bg-indigo-500/20 transition-colors">
-                            <FileText className="w-6 h-6 text-indigo-400" />
-                          </div>
-                          <h3 className="font-bold uppercase text-sm tracking-widest">Motor de Auditoría Técnico</h3>
-                        </div>
-                        <div className="prose prose-invert prose-sm max-w-none text-ink-secondary space-y-4">
-                          <p className="leading-relaxed">Análisis profundo del motor de cálculo basado en intensidades de carbono regionales y optimización de protocolos de datos de alto rendimiento.</p>
-                          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border-subtle/50">
-                            <div className="space-y-2">
-                              <span className="text-[10px] font-black text-indigo-400 uppercase tracking-tighter">Algoritmos</span>
-                              <p className="text-[11px] opacity-70 leading-tight">Gramm-to-Watt Conversion<br/>Regional Grid Intensity</p>
-                            </div>
-                            <div className="space-y-2">
-                              <span className="text-[10px] font-black text-indigo-400 uppercase tracking-tighter">Integraciones</span>
-                              <p className="text-[11px] opacity-70 leading-tight">Electricity Maps API<br/>Avro/Proto Analysis</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="p-8 bg-bg-secondary rounded-2xl border border-border-subtle shadow-sm transition-all hover:border-emerald-500/30 group">
-                        <div className="flex items-center gap-4 mb-6">
-                          <div className="p-3 bg-emerald-500/10 rounded-xl group-hover:bg-emerald-500/20 transition-colors">
-                            <Presentation className="w-6 h-6 text-emerald-400" />
-                          </div>
-                          <h3 className="font-bold uppercase text-sm tracking-widest">Guía de Exposición Experta</h3>
-                        </div>
-                        <div className="prose prose-invert prose-sm max-w-none text-ink-secondary space-y-4">
-                          <p className="leading-relaxed">Estructura narrativa y puntos clave diseñados para la sustentación ante el jurado calificador.</p>
-                          <div className="grid grid-cols-1 gap-2 pt-4">
-                            <div className="flex items-center gap-2 text-[11px] font-medium py-1 px-3 bg-emerald-500/5 rounded-lg border border-emerald-500/10">
-                              <div className="w-1 h-1 bg-emerald-400 rounded-full" /> Narrativa de "ROI Verde" y eficiencia
-                            </div>
-                            <div className="flex items-center gap-2 text-[11px] font-medium py-1 px-3 bg-emerald-500/5 rounded-lg border border-emerald-500/10">
-                              <div className="w-1 h-1 bg-emerald-400 rounded-full" /> Análisis de picos en horas de alta demanda
-                            </div>
-                            <div className="flex items-center gap-2 text-[11px] font-medium py-1 px-3 bg-emerald-500/5 rounded-lg border border-emerald-500/10">
-                              <div className="w-1 h-1 bg-emerald-400 rounded-full" /> Estrategia de reducción de huella por serialización
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="hidden print:block text-black bg-white p-12 font-serif">
-                   <h1 className="text-3xl font-black mb-4">INFORME TÉCNICO: DESEMPEÑO AMBIENTAL</h1>
-                   <p className="mb-6">Auditoría de Huella de Carbono en Pipelines de Datos de IA.</p>
-                   <h2 className="text-xl font-bold mt-8">1. MÉTODO DE CÁLCULO</h2>
-                   <p className="mt-2 italic">Energy (Wh) = (CO2_g / Carbon_Intensity_g_per_kWh) * 1000</p>
-                   <h2 className="text-xl font-bold mt-8">2. LIBRERÍAS CLAVE</h2>
-                   <ul className="mt-2">
-                     <li>Node.js / Express: Servidor de Auditoría</li>
-                     <li>React / Recharts: Visualización de Series</li>
-                     <li>Electricity Maps API: Intensidad en tiempo real</li>
-                   </ul>
-                </div>
-              </div>
-            )}
             {tab === "live" && (
               <div className="space-y-6">
                 {/* Transparency Banner Card */}
@@ -778,7 +698,7 @@ export default function App() {
                     <h3 className="font-bold text-slate-100 uppercase tracking-wider text-sm">Resumen de Modelos Auditados</h3>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {history && history.by_model && Object.entries(history.by_model).map(([model, data]) => (
+                    {history && history.by_model && Object.entries(history.by_model).map(([model, data]: [string, any]) => (
                       <div key={model} className="bg-slate-800/40 p-4 rounded-lg border border-slate-700/50">
                         <div className="text-[10px] text-slate-400 uppercase mb-1 font-bold">{model}</div>
                         <div className="flex justify-between items-baseline mb-2">

@@ -39,7 +39,7 @@ async function startServer() {
 
   function getGemini() {
     if (!genAI && process.env.GEMINI_API_KEY) {
-      genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
+      genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     }
     return genAI;
   }
@@ -61,8 +61,8 @@ async function startServer() {
     fmt_data: { json: 1.2, avro: 0.4, proto: 0.35 },
     scheduler: true,
     logs: [
-      { ts: new Date().toLocaleTimeString(), t: "info", m: "Sistema iniciado" },
-      { ts: new Date().toLocaleTimeString(), t: "info", m: "Conectado a fuente de datos local" }
+      { ts: new Date().toLocaleTimeString(), t: "info" as const, m: "Sistema iniciado" },
+      { ts: new Date().toLocaleTimeString(), t: "info" as const, m: "Conectado a fuente de datos local" }
     ]
   };
 
@@ -92,7 +92,7 @@ async function startServer() {
       if (model === "gemini") {
         const client = getGemini();
         if (!client) throw new Error("GEMINI_API_KEY no configurada (Verificar Secrets)");
-        const aiModel = client.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const aiModel = client.getGenerativeModel({ model: "gemini-2.0-flash" });
         const result = await aiModel.generateContent("Hola, esto es una prueba de pipeline de datos verdes.");
         tokensUsed = result.response.usageMetadata?.totalTokenCount || 50;
       } else if (model === "openai") {
@@ -228,7 +228,7 @@ async function startServer() {
           by_model[modelName].calls++;
           by_model[modelName].co2_g += co2;
 
-          const country = geoCache[modelName]?.country || "United States";
+          const country = (geoCache as any)[modelName]?.country || "United States";
           if (!by_country[country]) by_country[country] = { calls: 0, co2_g: 0 };
           by_country[country].calls++;
           by_country[country].co2_g += co2;
@@ -250,9 +250,12 @@ async function startServer() {
           by_hour[h] += co2; 
         });
 
+        const firstRecord = records[0] as any;
+        const lastRecord = records[records.length - 1] as any;
+
         return res.json({
-          period_start: records[0]?.date || records[0]?.Date || "",
-          period_end: records[records.length - 1]?.date || records[records.length - 1]?.Date || "",
+          period_start: firstRecord?.date || firstRecord?.Date || "",
+          period_end: lastRecord?.date || lastRecord?.Date || "",
           total_calls,
           total_co2_g,
           total_co2_saved_g,
