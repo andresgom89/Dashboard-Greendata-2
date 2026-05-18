@@ -13,7 +13,11 @@ import {
   Info,
   Server,
   Zap,
-  ArrowRight
+  ArrowRight,
+  Download,
+  FileText,
+  Presentation,
+  Video
 } from "lucide-react";
 import { 
   LineChart, 
